@@ -1,0 +1,9 @@
+requests>=2.31.0
+tenacity>=8.2.0
+biopython>=1.83
+python-dotenv>=1.0.0
+anthropic>=0.40.0
+psycopg2-binary>=2.9.9
+pgvector>=0.3.0
+sentence-transformers>=2.2.0
+PyMuPDF>=1.24.0

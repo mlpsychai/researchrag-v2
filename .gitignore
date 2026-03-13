@@ -1,0 +1,8 @@
+.env
+__pycache__/
+*.pyc
+articles/
+guide_images/
+library/
+.test_env/
+venv/
