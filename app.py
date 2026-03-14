@@ -159,10 +159,9 @@ def browse_papers(sort_by, paper_type, year_min, year_max, keyword, topic_name):
     elif paper_type == "Expanded only":
         conditions.append("is_seed = FALSE")
 
-    # Filter: year range
-    conditions.append("year >= %s")
+    # Filter: year range (include papers with NULL year)
+    conditions.append("(year IS NULL OR (year >= %s AND year <= %s))")
     params.append(int(year_min))
-    conditions.append("year <= %s")
     params.append(int(year_max))
 
     # Filter: keyword
