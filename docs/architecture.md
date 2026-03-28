@@ -28,7 +28,8 @@ Neon Postgres
 ├── mmpi3           (MMPI-3 — loaded from book PDFs)
 ├── anna_freud      (Anna Freud — loaded from book PDFs)
 ├── pcos            (PCOS — empty, ready for data)
-└── personality_assessment_inventory (PAI — empty, ready for data)
+├── personality_assessment_inventory (PAI — empty, ready for data)
+└── psychological_assessment (Psychological Assessment — empty, ready for data)
 ```
 
 The pgvector extension is installed in the `corpus` schema (not `public` — Neon restriction). All connections include `corpus` in the search_path so the `vector` type is accessible.

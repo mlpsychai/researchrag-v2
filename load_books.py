@@ -13,6 +13,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 import fitz  # PyMuPDF
+import docx
 from ebooklib import epub
 from bs4 import BeautifulSoup
 from sentence_transformers import SentenceTransformer
@@ -27,12 +28,19 @@ EMBED_MODEL = "all-MiniLM-L6-v2"
 BATCH_SIZE = 32
 
 
+def extract_docx_text(filepath):
+    doc = docx.Document(filepath)
+    return "\n\n".join(p.text for p in doc.paragraphs if p.text.strip())
+
+
 def extract_full_text(filepath):
     if filepath.lower().endswith('.epub'):
         return extract_epub_text(filepath)
     if filepath.lower().endswith('.txt'):
         with open(filepath, "r", encoding="utf-8") as f:
             return f.read()
+    if filepath.lower().endswith('.docx'):
+        return extract_docx_text(filepath)
     doc = fitz.open(filepath)
     text = ""
     for page in doc:
@@ -376,10 +384,65 @@ PAI_BOOKS = [
     },
 ]
 
+PA_LIB = os.path.join(os.path.dirname(__file__), "library", "psychological_assessment")
+
+PSYCHOLOGICAL_ASSESSMENT_BOOKS = [
+    {
+        "file": os.path.join(PA_LIB, "essentials_mcmi4_extracted.txt"),
+        "title": "Essentials of MCMI-IV Assessment",
+        "authors": ["Seth D. Grossman", "Blaise Amendolace"],
+        "year": 2021,
+    },
+    {
+        "file": os.path.join(PA_LIB, "Interpreting_the_MMPI-3_--_Yossef_S__Ben-Porath__Martin_Sellbom_--___WeLib_org___20260204_154033.txt"),
+        "title": "Interpreting the MMPI-3",
+        "authors": ["Yossef S. Ben-Porath", "Martin Sellbom"],
+        "year": 2024,
+    },
+    {
+        "file": os.path.join(PA_LIB, "MCMI_IV_2026a_lecture.txt"),
+        "title": "MCMI-IV Lecture Notes",
+        "authors": [],
+        "year": 2026,
+    },
+    {
+        "file": os.path.join(PA_LIB, "MMPI-3_History_and_Validity_Scales.txt"),
+        "title": "MMPI-3: History and Validity Scales",
+        "authors": [],
+    },
+    {
+        "file": os.path.join(PA_LIB, "PAI.txt"),
+        "title": "Personality Assessment Inventory Reference",
+        "authors": [],
+    },
+    {
+        "file": os.path.join(PA_LIB, "f80fe47c3689ed1b92f5752b2d3c2795_Clinical Applications of the Personality Assessment -- Mark A. Blais; Matthew Ryan Baity; Christopher J. Hopwood -- ( WeLib.org ).epub"),
+        "title": "Clinical Applications of the Personality Assessment Inventory",
+        "authors": ["Mark A. Blais", "Matthew Ryan Baity", "Christopher J. Hopwood"],
+        "year": 2010,
+    },
+    {
+        "file": os.path.join(PA_LIB, "MCMI_ Interpretive Report_Gregory Grinch_VF.docx"),
+        "title": "MCMI-IV Interpretive Report: Gregory Grinch",
+        "authors": [],
+    },
+    {
+        "file": os.path.join(PA_LIB, "MMPI3_interpretive_report_GREGGRINCH.docx"),
+        "title": "MMPI-3 Interpretive Report: Gregory Grinch",
+        "authors": [],
+    },
+    {
+        "file": os.path.join(PA_LIB, "PAI Interpretive Report_Template_Gregory Grinch_VF.docx"),
+        "title": "PAI Interpretive Report: Gregory Grinch",
+        "authors": [],
+    },
+]
+
 SCHEMA_BOOKS = {
     "anna_freud": ANNA_FREUD_BOOKS,
     "pcos": PCOS_BOOKS,
     "personality_assessment_inventory": PAI_BOOKS,
+    "psychological_assessment": PSYCHOLOGICAL_ASSESSMENT_BOOKS,
 }
 
 

@@ -36,6 +36,7 @@ SCHEMA_DISPLAY_NAMES = {
     "anna_freud": "Anna Freud",
     "pcos": "PCOS",
     "personality_assessment_inventory": "Personality Assessment Inventory",
+    "psychological_assessment": "Psychological Assessment",
 }
 
 
