@@ -148,12 +148,11 @@ def query(question, top_k=TOP_K, schema="corpus", model_name=None):
     )
 
     model_id = CLAUDE_MODELS.get(model_name, CLAUDE_MODEL)
-    max_tokens = 16000 if "opus" in model_id else 2000
 
     client = anthropic.Anthropic(api_key=config.ANTHROPIC_API_KEY)
     response = client.messages.create(
         model=model_id,
-        max_tokens=max_tokens,
+        max_tokens=2000,
         system=system_prompt,
         messages=[{
             "role": "user",
