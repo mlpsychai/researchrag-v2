@@ -18,6 +18,12 @@ from db.connection import get_connection
 
 MODEL_NAME = "all-MiniLM-L6-v2"
 TOP_K = 8
+CLAUDE_MODELS = {
+    "Haiku 4.5": "claude-haiku-4-5-20251001",
+    "Sonnet 4.6": "claude-sonnet-4-6-20250514",
+    "Opus 4.6": "claude-opus-4-6-20250529",
+    "Opus 4.6 (1M)": "claude-opus-4-6-20250529",
+}
 CLAUDE_MODEL = "claude-haiku-4-5-20251001"
 
 _embed_model = None
@@ -124,7 +130,7 @@ SCHEMA_PROMPTS = {
 }
 
 
-def query(question, top_k=TOP_K, schema="corpus"):
+def query(question, top_k=TOP_K, schema="corpus", model_name=None):
     """Full RAG pipeline: retrieve chunks, synthesize answer with Claude."""
     chunks = retrieve_chunks(question, top_k, schema=schema)
 
@@ -141,10 +147,13 @@ def query(question, top_k=TOP_K, schema="corpus"):
         "answer, say so. Be specific and use evidence from the texts."
     )
 
+    model_id = CLAUDE_MODELS.get(model_name, CLAUDE_MODEL)
+    max_tokens = 16000 if "opus" in model_id else 2000
+
     client = anthropic.Anthropic(api_key=config.ANTHROPIC_API_KEY)
     response = client.messages.create(
-        model=CLAUDE_MODEL,
-        max_tokens=2000,
+        model=model_id,
+        max_tokens=max_tokens,
         system=system_prompt,
         messages=[{
             "role": "user",

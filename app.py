@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 import gradio as gr
-from rag_pipeline import query, retrieve_chunks, get_embed_model
+from rag_pipeline import query, retrieve_chunks, get_embed_model, CLAUDE_MODELS
 from db.connection import get_connection
 
 
@@ -70,14 +70,14 @@ def get_corpus_stats(schema="corpus"):
 
 # ── RAG Q&A ───────────────────────────────────────────────────────
 
-def rag_query(question, top_k, topic_name):
+def rag_query(question, top_k, topic_name, model_name="Haiku 4.5"):
     """Run the RAG pipeline and format output for Gradio."""
     if not question.strip():
         return "", ""
 
     schema = display_to_schema(topic_name)
     top_k = int(top_k)
-    answer, chunks, refs = query(question, top_k=top_k, schema=schema)
+    answer, chunks, refs = query(question, top_k=top_k, schema=schema, model_name=model_name)
 
     # Format source details
     sources_md = ""
@@ -250,13 +250,19 @@ total_papers, seed_papers, total_chunks, fulltext_papers = get_corpus_stats(defa
 
 with gr.Blocks(title="ResearchRAG", theme=gr.themes.Soft()) as app:
 
-    # Topic selector
+    # Topic selector + Model selector
     with gr.Row():
         topic_dropdown = gr.Dropdown(
             choices=topic_choices,
             value=default_topic,
             label="Research Topic",
             scale=2,
+        )
+        model_dropdown = gr.Dropdown(
+            choices=list(CLAUDE_MODELS.keys()),
+            value="Haiku 4.5",
+            label="Model",
+            scale=1,
         )
 
     # Dynamic header
@@ -289,19 +295,19 @@ with gr.Blocks(title="ResearchRAG", theme=gr.themes.Soft()) as app:
 
             status_text = gr.Markdown(visible=False)
 
-            def rag_with_status(question, top_k, topic_name):
+            def rag_with_status(question, top_k, topic_name, model_name):
                 yield gr.Markdown(value="*Searching and synthesizing — this may take a moment...*", visible=True), "", ""
-                answer, sources = rag_query(question, top_k, topic_name)
+                answer, sources = rag_query(question, top_k, topic_name, model_name)
                 yield gr.Markdown(value="", visible=False), answer, sources
 
             ask_btn.click(
                 fn=rag_with_status,
-                inputs=[question_input, top_k_slider, topic_dropdown],
+                inputs=[question_input, top_k_slider, topic_dropdown, model_dropdown],
                 outputs=[status_text, answer_output, sources_output],
             )
             question_input.submit(
                 fn=rag_with_status,
-                inputs=[question_input, top_k_slider, topic_dropdown],
+                inputs=[question_input, top_k_slider, topic_dropdown, model_dropdown],
                 outputs=[status_text, answer_output, sources_output],
             )
 
