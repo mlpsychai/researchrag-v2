@@ -169,6 +169,76 @@ def query(question, top_k=TOP_K, schema="corpus", model_name=None):
     return answer, chunks, references
 
 
+def get_papers_list(schema="corpus"):
+    """Return list of (paper_id, title) for a schema."""
+    with get_connection(schema=schema) as conn:
+        with conn.cursor() as cur:
+            cur.execute("SELECT paper_id, title FROM papers ORDER BY title;")
+            return cur.fetchall()
+
+
+def synthesize(paper_ids, prompt, schema="corpus", model_name=None):
+    """Retrieve all chunks for selected papers and synthesize with Claude."""
+    if not paper_ids or not prompt.strip():
+        return ""
+
+    with get_connection(schema=schema) as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT c.content, p.title, p.paper_id
+                FROM chunks c
+                JOIN papers p ON c.paper_id = p.paper_id
+                WHERE c.paper_id = ANY(%s)
+                ORDER BY p.paper_id, c.chunk_index;
+                """,
+                (paper_ids,),
+            )
+            rows = cur.fetchall()
+
+    if not rows:
+        return "No content found for the selected documents."
+
+    # Build context grouped by paper
+    seen = {}
+    context_parts = []
+    for content, title, pid in rows:
+        if pid not in seen:
+            seen[pid] = len(seen) + 1
+            context_parts.append(f"\n=== [{seen[pid]}] {title} ===\n")
+        context_parts.append(content)
+
+    refs = "\n".join(f"[{num}] {next(t for _, t, p in rows if p == pid)}"
+                     for pid, num in seen.items())
+    context_text = "\n\n".join(context_parts)
+
+    topic_prompt = SCHEMA_PROMPTS.get(schema, "You are a research assistant.")
+    system_prompt = (
+        f"{topic_prompt} Synthesize a response based on the provided documents. "
+        "Cite sources using bracket notation like [1], [2]. "
+        "Be thorough and use specific evidence from the texts."
+    )
+
+    model_id = CLAUDE_MODELS.get(model_name, CLAUDE_MODEL)
+
+    client = anthropic.Anthropic(api_key=config.ANTHROPIC_API_KEY)
+    response = client.messages.create(
+        model=model_id,
+        max_tokens=2000,
+        system=system_prompt,
+        messages=[{
+            "role": "user",
+            "content": (
+                f"{prompt}\n\n"
+                f"Documents:\n{context_text}\n\n"
+                f"References:\n{refs}"
+            ),
+        }],
+    )
+
+    return response.content[0].text
+
+
 def main():
     """Interactive CLI for testing the RAG pipeline."""
     print("ResearchRAG — ask questions about the corpus")

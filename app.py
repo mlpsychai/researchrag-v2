@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 import gradio as gr
-from rag_pipeline import query, retrieve_chunks, get_embed_model, CLAUDE_MODELS
+from rag_pipeline import query, retrieve_chunks, get_embed_model, get_papers_list, synthesize, CLAUDE_MODELS
 from db.connection import get_connection
 
 
@@ -390,11 +390,66 @@ with gr.Blocks(title="ResearchRAG", theme=gr.themes.Soft()) as app:
                 outputs=[browse_output],
             )
 
-    # Wire topic change to update header + keyword filter
+        # Tab 4: Synthesize
+        with gr.Tab("Synthesize"):
+            gr.Markdown("Select documents and write a custom prompt to synthesize their content.")
+
+            initial_papers = get_papers_list(default_schema)
+            paper_choices = [f"{pid}: {title}" for pid, title in initial_papers]
+
+            paper_selector = gr.CheckboxGroup(
+                choices=paper_choices,
+                label="Select documents",
+            )
+            synth_prompt = gr.Textbox(
+                label="Prompt",
+                placeholder="e.g., Write a comprehensive clinical psychodiagnostic report synthesizing all assessment results",
+                lines=3,
+            )
+            synth_btn = gr.Button("Synthesize", variant="primary")
+            synth_status = gr.Markdown(visible=False)
+            synth_output = gr.Markdown(label="Output")
+
+            def run_synthesize(selected_papers, prompt, topic_name, model_name):
+                if not selected_papers or not prompt.strip():
+                    yield gr.Markdown(visible=False), "Please select at least one document and enter a prompt."
+                    return
+                yield gr.Markdown(value="*Synthesizing — this may take a moment...*", visible=True), ""
+                schema = display_to_schema(topic_name)
+                paper_ids = [int(s.split(":")[0]) for s in selected_papers]
+                result = synthesize(paper_ids, prompt, schema=schema, model_name=model_name)
+                yield gr.Markdown(value="", visible=False), result
+
+            synth_btn.click(
+                fn=run_synthesize,
+                inputs=[paper_selector, synth_prompt, topic_dropdown, model_dropdown],
+                outputs=[synth_status, synth_output],
+            )
+
+    # Wire topic change to update header, keyword filter, and paper selector
+    def on_topic_change_full(topic_name):
+        schema = display_to_schema(topic_name)
+        total_papers, seed_papers, total_chunks, fulltext_papers = get_corpus_stats(schema)
+
+        header = (
+            f"# ResearchRAG — {topic_name}\n"
+            f"**{total_papers} papers** | "
+            f"{fulltext_papers} full-text | "
+            f"{total_chunks} searchable chunks"
+        )
+
+        keywords = get_all_keywords(schema)
+        keyword_choices = ["All"] + keywords
+
+        papers = get_papers_list(schema)
+        paper_choices = [f"{pid}: {title}" for pid, title in papers]
+
+        return header, gr.Dropdown(choices=keyword_choices, value="All"), gr.CheckboxGroup(choices=paper_choices, value=[])
+
     topic_dropdown.change(
-        fn=on_topic_change,
+        fn=on_topic_change_full,
         inputs=[topic_dropdown],
-        outputs=[header_md, keyword_filter],
+        outputs=[header_md, keyword_filter, paper_selector],
     )
 
 if __name__ == "__main__":
